@@ -81,6 +81,8 @@ require("atone").setup({
             quit = { "<C-c>", "q" },
             next_node = "j", -- support v:count
             pre_node = "k", -- support v:count
+            jump_to_G = "G",
+            jump_to_gg = "gg",
             undo_to = "<CR>",
             help = { "?", "g?" },
         },
@@ -111,7 +113,7 @@ Here are the available actions and their default keybindings:
 | ---         | ---            | ---                                                             |
 | `next_node` | `j`            | Jump to the next node in the undo tree. Supports `v:count`.     |
 | `pre_node`  | `k`            | Jump to the previous node in the undo tree. Supports `v:count`. |
-| `jump_to_G` | `G`,           | Jump to the node with the specified sequence number like G      |
+| `jump_to_G` | `G`            | Jump to the node with the specified sequence number like G      |
 | `jump_to_gg`| `gg`           | Jump to the node with the specified sequence number like gg     |
 | `undo_to`   | `<CR>`         | Revert the buffer to the state of the node under the cursor.    |
 | `quit`      | `<C-c>`, `q`   | Close all `atone.nvim` windows (tree, diff, and help).          |
