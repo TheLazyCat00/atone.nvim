@@ -15,6 +15,11 @@ M.opts = {
         ---@type number float less than 1
         --- The diff window's height is set to a specified percentage of the original (namely tree graph) window's height.
         split_percent = 0.3,
+        ---@type "adaptive"|integer|number
+        --- adaptive: same width as tree window (default)
+        --- if number given is a float less than 1, the width is set to `vim.o.columns * that number`
+        --- if integer >= 1, absolute width
+        width = "adaptive",
     },
     -- automatically update the buffer that the tree is attached to
     -- only works for buffer whose buftype is <empty>

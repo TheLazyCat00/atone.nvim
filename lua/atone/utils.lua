@@ -26,44 +26,54 @@ function M.new_win(mode, buf, config, enter)
         enter = true
     end
     config = config or {}
-    local win
     local win_opts = {
         number = false,
         relativenumber = false,
         list = false,
-        winfixbuf = true,
         winfixwidth = true,
+        winfixheight = true,
+        cursorline = false,
         wrap = false,
+        statusline = "",
     }
 
+    local win
+
     if mode == "float" then
-        win = api.nvim_open_win(buf, enter, config)
-        -- close float window after leaving it
-        local au
-        au = api.nvim_create_autocmd("WinLeave", {
-            callback = function()
-                if api.nvim_get_current_win() == win then
-                    pcall(vim.api.nvim_win_close, win, true)
-                    api.nvim_del_autocmd(au)
-                elseif not vim.api.nvim_win_is_valid(win) then
-                    api.nvim_del_autocmd(au)
-                end
-            end,
-            once = true,
-            nested = true,
-        })
+        win = api.nvim_open_win(buf, enter, config.float or {})
+        if config.autoclose then
+            local au
+            au = api.nvim_create_autocmd("WinLeave", {
+                callback = function()
+                    if api.nvim_get_current_win() == win then
+                        pcall(vim.api.nvim_win_close, win, true)
+                        api.nvim_del_autocmd(au)
+                    elseif not vim.api.nvim_win_is_valid(win) then
+                        api.nvim_del_autocmd(au)
+                    end
+                end,
+                once = true,
+                nested = true,
+            })
+        end
     else
-        local cur = api.nvim_get_current_win()
+        local last_win = api.nvim_get_current_win()
         vim.cmd(mode .. " +buffer" .. buf)
         win = api.nvim_get_current_win()
         if not enter then
-            api.nvim_set_current_win(cur)
+            api.nvim_set_current_win(last_win)
         end
-        vim.api.nvim_win_set_config(win, config)
-    end
+        -- For split windows, use set_height/set_width instead of set_config
+        if config.height then
+            api.nvim_win_set_height(win, config.height)
+        end
+        if config.width then
+            api.nvim_win_set_width(win, config.width)
+        end
 
-    for option, value in pairs(win_opts) do
-        api.nvim_set_option_value(option, value, { win = win })
+        for option, value in pairs(win_opts) do
+            api.nvim_set_option_value(option, value, { win = win })
+        end
     end
 
     return win
