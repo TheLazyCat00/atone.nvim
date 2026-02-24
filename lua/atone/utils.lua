@@ -63,13 +63,7 @@ function M.new_win(mode, buf, config, enter)
         if not enter then
             api.nvim_set_current_win(last_win)
         end
-        -- For split windows, use set_height/set_width instead of set_config
-        if config.height then
-            api.nvim_win_set_height(win, config.height)
-        end
-        if config.width then
-            api.nvim_win_set_width(win, config.width)
-        end
+        api.nvim_win_set_config(win, config.split)
 
         for option, value in pairs(win_opts) do
             api.nvim_set_option_value(option, value, { win = win })
@@ -142,6 +136,12 @@ function M.time_ago(past_time)
         local days = math.floor(diff / 86400)
         return string.format("%d day%s ago", days, days > 1 and "s" or "")
     end
+end
+
+---@param win integer
+---@return boolean
+function M.win_exists(win)
+    return win and api.nvim_win_is_valid(win)
 end
 
 return M

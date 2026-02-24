@@ -48,7 +48,7 @@ end
 --- get the seq under cursor in _tree_win
 --- when the cursor is between two nodes, return nil
 ---@return integer|nil
-local function seq_under_cursor()
+local function get_seq_under_cursor()
     local id = id_under_cursor()
     if id % 1 ~= 0 then
         return nil
@@ -97,7 +97,7 @@ local mappings = {
     },
     undo_to = {
         function()
-            local seq = seq_under_cursor()
+            local seq = get_seq_under_cursor()
             if seq then
                 undo_to(seq)
                 M.refresh()
@@ -128,14 +128,17 @@ local function init()
             buffer = state.tree_buf,
             group = M.augroup,
             callback = vim.schedule_wrap(function()
-                pcall(function()
-                    local pre_seq = tree.nodes[seq_under_cursor()].parent or -1
-                    local before_ctx = diff.get_context_by_seq(M.attach_buf, pre_seq)
-                    ---@diagnostic disable-next-line: param-type-mismatch
-                    local cur_ctx = diff.get_context_by_seq(M.attach_buf, seq_under_cursor())
-                    local diff_ctx = diff.get_diff(before_ctx, cur_ctx)
-                    utils.set_text(state.auto_diff_buf, diff_ctx)
-                end)
+                local seq_under_cursor = get_seq_under_cursor()
+                if seq_under_cursor == nil then
+                    return
+                end
+
+                local pre_seq = tree.nodes[seq_under_cursor].parent or -1
+                local before_ctx = diff.get_context_by_seq(M.attach_buf, pre_seq)
+                ---@diagnostic disable-next-line: param-type-mismatch
+                local cur_ctx = diff.get_context_by_seq(M.attach_buf, seq_under_cursor)
+                local diff_ctx = diff.get_diff(before_ctx, cur_ctx)
+                utils.set_text(state.auto_diff_buf, diff_ctx)
             end),
         })
     end
@@ -155,7 +158,7 @@ local function init()
         buffer = state.dummy_buf,
         group = M.augroup,
         callback = function()
-            if api.nvim_win_is_valid(state.diff_win) then
+            if utils.win_exists(state.diff_win) then
                 api.nvim_set_current_win(state.diff_win)
             end
         end,
@@ -213,16 +216,10 @@ local function get_tree_width()
         local lines = api.nvim_buf_get_lines(state.tree_buf, 0, 1, false)
         return max_length(lines) + TREE_PADDING
     elseif width < 1 then
-        return math.floor(vim.o.columns * width + 0.5) + TREE_PADDING
+        return math.floor(vim.o.columns * width + 0.5)
     else
-        return math.floor(width) + TREE_PADDING
+        return math.floor(width)
     end
-end
-
----@param win integer
----@return boolean
-local function win_exists(win)
-    return win and api.nvim_win_is_valid(win)
 end
 
 ---@param direction string
@@ -269,7 +266,7 @@ function M.update_layout()
         return
     end
 
-    if not (win_exists(state.diff_win) and win_exists(state.dummy_win)) then
+    if not (utils.win_exists(state.diff_win) and utils.win_exists(state.dummy_win)) then
         return
     end
 
@@ -300,9 +297,14 @@ function M.update_layout()
 end
 
 local function check()
-    if api.nvim_buf_is_valid(state.auto_diff_buf) and api.nvim_buf_is_valid(state.tree_buf) and api.nvim_buf_is_valid(state.help_buf) then
+    if api.nvim_buf_is_valid(state.auto_diff_buf)
+        and api.nvim_buf_is_valid(state.tree_buf)
+        and api.nvim_buf_is_valid(state.help_buf)
+        and api.nvim_buf_is_valid(state.dummy_buf)
+    then
         return true
     end
+
     M.close()
     pcall(api.nvim_buf_delete, state.tree_buf, { force = false })
     pcall(api.nvim_buf_delete, state.auto_diff_buf, { force = false })
@@ -330,7 +332,7 @@ function M.open()
     local direction = directions[config.opts.layout.direction]
 
     local width = get_tree_width()
-    state.tree_win = utils.new_win(direction .. " vsplit", state.tree_buf, { width = width })
+    state.tree_win = utils.new_win(direction .. " vsplit", state.tree_buf, { split = { width = width } })
     if config.opts.diff_cur_node.enabled then
         local height = math.floor(api.nvim_win_get_height(state.tree_win) * config.opts.diff_cur_node.split_percent + 0.5)
         local diff_width_conf = config.opts.diff_cur_node.width
@@ -350,7 +352,7 @@ function M.open()
         end
 
         if use_float then
-            state.dummy_win = utils.new_win("belowright split", state.dummy_buf, { height = height }, false)
+            state.dummy_win = utils.new_win("belowright split", state.dummy_buf, { split = { height = height } }, false)
 
             local anchor = get_anchor(config.opts.layout.direction)
             local col = get_col(config.opts.layout.direction)
@@ -403,7 +405,7 @@ function M.open()
             }, false)
             M.update_layout()
         else
-            state.diff_win = utils.new_win("belowright split", state.auto_diff_buf, { height = height }, false)
+            state.diff_win = utils.new_win("belowright split", state.auto_diff_buf, { split = { height = height } }, false)
         end
     end
 
@@ -424,7 +426,7 @@ function M.refresh()
         utils.set_text(state.tree_buf, buf_lines)
 
         -- Update layout on refresh (in case tree resized)
-        if api.nvim_win_is_valid(state.diff_win) and api.nvim_win_get_config(state.diff_win).relative ~= "" then
+        if utils.win_exists(state.diff_win) and api.nvim_win_get_config(state.diff_win).relative ~= "" then
             M.update_layout()
         end
 
