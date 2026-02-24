@@ -1,0 +1,156 @@
+*atone.txt*         For Neovim >= 0.11.3         Last change: 2025 November 14
+
+==============================================================================
+Table of Contents                                    *atone-table-of-contents*
+
+Features .................................................... |atone-features|
+Installation ............................................ |atone-installation|
+Commands .................................................... |atone-commands|
+Configuration .......................................... |atone-configuration|
+Keymap Actions ........................................ |atone-keymap-actions|
+Highlighting ............................................ |atone-highlighting|
+Credits ...................................................... |atone-credits|
+
+------------------------------------------------------------------------------
+FEATURES                                                      *atone-features*
+
+
+* **Blazing Fast**
+* **Mordern UI**
+* **Live Diff:** Instantly see the difference between the selected
+  undo-history state and its parent.
+* **Auto-attaching Tree:** The undo tree automatically follows you as you
+  switch between buffers.
+* **Highly Customizable:** Almost every aspect can be configured.
+
+------------------------------------------------------------------------------
+INSTALLATION                                              *atone-installation*
+
+
+You can install `atone.nvim` using your favorite plugin manager. Here comes a
+example for *lazy.nvim*
+
+>lua
+    {
+        "XXiaoA/atone.nvim",
+        cmd = "Atone",
+        opts = {}, -- your configuration here
+    }
+<
+
+------------------------------------------------------------------------------
+COMMANDS                                                      *atone-commands*
+
+
+The main command is `:Atone`. It has the following subcommands:
+
+| Command                   | Description                               |
+| ------------------------- | ----------------------------------------  |
+| `:Atone` or `:Atone open` | Opens the undo tree view.                 |
+| `:Atone toggle`           | Toggles the undo tree view on and off.    |
+| `:Atone close`            | Closes the undo tree view.                |
+| `:Atone focus`            | Moves the cursor to the undo tree window. |
+
+
+------------------------------------------------------------------------------
+CONFIGURATION                                            *atone-configuration*
+
+
+You can configure `atone.nvim` by passing a table to the `setup` function.
+Here are the default options:
+
+>lua
+    require("atone").setup({
+        layout = {
+            ---@type "left"|"right"
+            direction = "left",
+            ---@type "adaptive"|integer|number
+            --- adaptive: exact the width of tree graph
+            --- if number given is a float less than 1, the width is set to `vim.o.columns * that number`
+            width = 0.25,
+        },
+        -- diff for the node under cursor
+        -- shown under the tree graph
+        diff_cur_node = {
+            enabled = true,
+            ---@type number float less than 1
+            --- The diff window's height is set to a specified percentage of the original (namely tree graph) window's height.
+            split_percent = 0.3,
+        },
+        -- automatically update the buffer that the tree is attached to
+        -- only works for buffer whose buftype is <empty>
+        auto_attach = {
+            enabled = true,
+            excluded_ft = { "oil" },
+        },
+        keymaps = {
+            tree = {
+                quit = { "<C-c>", "q" },
+                next_node = "j", -- support v:count
+                pre_node = "k", -- support v:count
+                jump_to_G = "G",
+                jump_to_gg = "gg",
+                undo_to = "<CR>",
+                help = { "?", "g?" },
+            },
+            auto_diff = {
+                quit = { "<C-c>", "q" },
+                help = { "?", "g?" },
+            },
+            help = {
+                quit_help = { "<C-c>", "q" },
+            },
+        },
+        ui = {
+            -- refer to `:h 'winborder'`
+            border = "single",
+            -- compact graph style
+            compact = false,
+        },
+    })
+<
+
+                                                                              
+KEYMAP ACTIONS                                          *atone-keymap-actions*
+
+The `keymaps` table in the configuration allows you to map keys to specific
+actions in different windows. The keys can be a single string or a table of
+strings.
+
+Here are the available actions and their default keybindings:
+
+| Action      | Default Key(s) | Description                                                     |
+| ---         | ---            | ---                                                             |
+| `next_node` | `j`            | Jump to the next node in the undo tree. Supports `v:count`.     |
+| `pre_node`  | `k`            | Jump to the previous node in the undo tree. Supports `v:count`. |
+| `jump_to_G` | `G`            | Jump to the node with the specified sequence number like G      |
+| `jump_to_gg`| `gg`           | Jump to the node with the specified sequence number like gg     |
+| `undo_to`   | `<CR>`         | Revert the buffer to the state of the node under the cursor.    |
+| `quit`      | `<C-c>`, `q`   | Close all `atone.nvim` windows (tree, diff, and help).          |
+| `help`      | `?`, `g?`      | Show the help page.                                             |
+| `quit_help` | `<C-c>`, `q`   | Close the help window.                                          |
+
+
+------------------------------------------------------------------------------
+HIGHLIGHTING                                              *atone-highlighting*
+
+
+`atone.nvim` uses the following highlight groups. You can customize them as
+what you did for normal highlight groups.
+
+| Highlight Group    | Default           | Description                                       |
+| ---                | ---               | ---                                               |
+| `AtoneSeq`         | link to `Number`  | The sequence number of each node                  |
+| `AtoneSeqBracket`  | link to `Comment` | The brackets surrounding the node sequence number |
+| `AtoneCurrentNode` | link to `Keyword` | The currently selected node in the undo tree      |
+
+
+------------------------------------------------------------------------------
+CREDITS                                                        *atone-credits*
+
+
+- Heavily inspired by vim-mundo <https://github.com/simnalamburt/vim-mundo>
+- Refer to user commands implementation in nvim-best-practices
+  <https://github.com/nvim-neorocks/nvim-best-practices>
+
+vim:tw=78:ts=8:ft=help:norl:
