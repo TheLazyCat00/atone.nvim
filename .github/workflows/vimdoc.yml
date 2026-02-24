@@ -33,7 +33,7 @@ jobs:
           nvim --headless -u ~/.local/share/nvim/site/pack/vendor/start/ts-vimdoc.nvim/scripts/init.lua  -c "lua require('ts-vimdoc').docgen({input_file='README.md', output_file='doc/atone.txt', project_name='atone', version='For Neovim >= 0.11.3'})" -c "qa"
       - name: Commit changes
         env:
-          GITHUB_TOKEN: ${{ secrets.XXiaoA_GITHUB_PAT }}
+          GITHUB_TOKEN: ${{ secrets.XXIAOA_GITHUB_PAT }}
           COMMIT_MSG: |
             [docgen] CI: autogenerate vimdoc
             skip-checks: true
