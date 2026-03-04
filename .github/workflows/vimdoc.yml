@@ -33,8 +33,7 @@ jobs:
       - name: Commit changes
         env:
           COMMIT_MSG: |
-            [docgen] CI: autogenerate vimdoc
-            skip-checks: true
+            [docgen] CI: autogenerate vimdoc [skip ci]
         run: |
           git config user.email "actions@github"
           git config user.name "Github Actions"
