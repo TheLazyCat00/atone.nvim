@@ -390,7 +390,7 @@ function M.open()
             end
 
             state.diff_win = utils.new_win("float", state.auto_diff_buf, {
-                float = {
+                win_config = {
                     relative = "win",
                     win = state.dummy_win,
                     anchor = anchor,
@@ -472,7 +472,7 @@ function M.show_help()
     local editor_columns = api.nvim_get_option_value("columns", {})
     local editor_lines = api.nvim_get_option_value("lines", {})
     state.float_win = utils.new_win("float", state.help_buf, {
-        float = {
+        win_config = {
             relative = "editor",
             row = math.max(0, (editor_lines - #help_lines) / 2),
             col = math.max(0, (editor_columns - max_line - 1) / 2),

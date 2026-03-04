@@ -40,7 +40,7 @@ function M.new_win(mode, buf, config, enter)
     local win
 
     if mode == "float" then
-        win = api.nvim_open_win(buf, enter, config.float or {})
+        win = api.nvim_open_win(buf, enter, config.win_config or {})
         if config.autoclose then
             local au
             au = api.nvim_create_autocmd("WinLeave", {
@@ -63,7 +63,7 @@ function M.new_win(mode, buf, config, enter)
         if not enter then
             api.nvim_set_current_win(last_win)
         end
-        api.nvim_win_set_config(win, config.split)
+		api.nvim_win_set_config(win, config.win_config or {})
 
         for option, value in pairs(win_opts) do
             api.nvim_set_option_value(option, value, { win = win })
