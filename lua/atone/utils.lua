@@ -63,7 +63,7 @@ function M.new_win(mode, buf, config, enter)
         if not enter then
             api.nvim_set_current_win(last_win)
         end
-		api.nvim_win_set_config(win, config.win_config or {})
+        api.nvim_win_set_config(win, config.win_config or {})
 
         for option, value in pairs(win_opts) do
             api.nvim_set_option_value(option, value, { win = win })
