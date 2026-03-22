@@ -7,6 +7,7 @@ local highlights = {
     Seq = { link = "Number" },
     CurrentNode = { link = "Keyword" },
     SeqBracket = { link = "Comment" },
+    Mark = { link = "BookmarkSign" },
 }
 
 local function set_highlights()
@@ -55,6 +56,10 @@ end
 function M.setup(user_opts)
     user_opts = user_opts or {}
     config.merge_config(user_opts)
+
+    if config.opts.marks.persist then
+        require("atone.mark").load()
+    end
 
     api.nvim_create_user_command("Atone", atone_cmd, {
         nargs = "*",

@@ -22,6 +22,14 @@ M.opts = {
         enabled = true,
         excluded_ft = { "oil" },
     },
+    marks = {
+        persist = true,
+        ---@type string
+        persist_path = vim.fn.stdpath("data") .. "/atone_marks.json",
+        ---@type string[]
+        --- finders are tried in order. "builtin" is always available.
+        finders = { "fzf-lua", "telescope", "builtin" },
+    },
     keymaps = {
         tree = {
             quit = { "<C-c>", "q" },
@@ -30,6 +38,11 @@ M.opts = {
             jump_to_G = "G",
             jump_to_gg = "gg",
             undo_to = "<CR>",
+            set_mark = "m",
+            delete_mark = { "x", "X" },
+            delete_all_marks = "dM",
+            goto_mark = { "'", "`" },
+            mark_picker = "s",
             help = { "?", "g?" },
         },
         auto_diff = {

@@ -186,7 +186,8 @@ end
 -- o |  [1]   2    7  <- a node
 -- |/              8  <- line after this node
 -- o    [0]   1    9
-function M.render()
+function M.render(marks_labels)
+    marks_labels = marks_labels or {}
     M.lines = {}
     local max_depth = 1
     seqs = { 0 }
@@ -303,7 +304,12 @@ function M.render()
             else
                 time = "Original"
             end
-            M.lines[lnum] = set_char_at(M.lines[lnum], max_depth * 2 + 4, "[" .. seq .. "] " .. time)
+
+            local target_index = max_depth * 2 + 4
+            local label = marks_labels[seq]
+            local label_suffix = label and label or ""
+            local content = string.format("[%s] %s %s", seq, time, label_suffix)
+            M.lines[lnum] = set_char_at(M.lines[lnum], target_index, content)
         end
     end
 

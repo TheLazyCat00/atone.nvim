@@ -134,4 +134,10 @@ function M.time_ago(past_time)
     end
 end
 
+---@param buf integer
+---@return string
+function M.buf_filepath(buf)
+    return vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ":p")
+end
+
 return M

@@ -48,4 +48,16 @@ function M.get_diff(ctx1, ctx2)
     return vim.split(result, "\n")
 end
 
+--- Get the diff between a node and its parent
+---@param buf integer
+---@param seq integer
+---@return string[]
+function M.get_diff_by_seq(buf, seq)
+    local tree = require("atone.tree")
+    local parent_seq = tree.nodes[seq].parent or -1
+    local before_ctx = M.get_context_by_seq(buf, parent_seq)
+    local cur_ctx = M.get_context_by_seq(buf, seq)
+    return M.get_diff(before_ctx, cur_ctx)
+end
+
 return M
