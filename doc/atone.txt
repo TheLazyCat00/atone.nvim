@@ -1,4 +1,4 @@
-*atone.txt*           For Neovim >= 0.11.3          Last change: 2026 March 22
+*atone.txt*           For Neovim >= 0.11.3          Last change: 2026 April 03
 
 ==============================================================================
 Table of Contents                                    *atone-table-of-contents*
@@ -17,8 +17,8 @@ FEATURES                                                      *atone-features*
 
 * **Blazing Fast**
 * **Mordern UI**
-* **Live Diff:** Instantly see the difference between the selected
-  undo-history state and its parent.
+* **Live Syntax-Aware Diff**: Instant, TreeSitter-powered diff previews with
+  word-level inline highlighting.
 * **Auto-attaching Tree:** The undo tree automatically follows you as you
   switch between buffers.
 * **Node Marks:** Bookmark important undo states for quick navigation.
@@ -77,6 +77,10 @@ Here are the default options:
             ---@type number float less than 1
             --- The diff window's height is set to a specified percentage of the original (namely tree graph) window's height.
             split_percent = 0.3,
+            -- Use TreeSitter to highlight the source code inside diff hunks.
+            treesitter = true,
+            -- Highlight the exact changed word ranges inside modified lines.
+            inline_diff = true,
         },
         -- automatically update the buffer that the tree is attached to
         -- only works for buffer whose buftype is <empty>
@@ -139,7 +143,7 @@ Here are the available actions and their default keybindings:
 | `jump_to_G`   | `G`            | Jump to the node with the specified sequence number like G      |
 | `jump_to_gg`  | `gg`           | Jump to the node with the specified sequence number like gg     |
 | `undo_to`     | `<CR>`         | Revert the buffer to the state of the node under the cursor.    |
-| `set_mark`    | `m`            | Set a mark. Use `N:name` or `N` for slot (0-9).                |
+| `set_mark`    | `m`            | Set a mark. Use `N:name` or `N` for slot (0-9).                 |
 | `delete_mark` | `x`, `X`       | Delete the mark on the node under cursor.                       |
 | `delete_all_marks` | `dM`      | Delete all marks in current buffer.                             |
 | `goto_mark`   | `'`, `` ` ``   | Jump to a mark slot (0-9).                                      |
@@ -156,12 +160,16 @@ HIGHLIGHTING                                              *atone-highlighting*
 `atone.nvim` uses the following highlight groups. You can customize them as
 what you did for normal highlight groups.
 
-| Highlight Group    | Default                | Description                                       |
-| ---                | ---                    | ---                                               |
-| `AtoneSeq`         | link to `Number`       | The sequence number of each node                  |
-| `AtoneSeqBracket`  | link to `Comment`      | The brackets surrounding the node sequence number |
-| `AtoneCurrentNode` | link to `Keyword`      | The currently selected node in the undo tree      |
-| `AtoneMark`        | link to `BookmarkSign` | Mark labels on nodes                              |
+| Highlight Group         | Default                   | Description                                       |
+| ---                     | ---                       | ---                                               |
+| `AtoneSeq`              | link to `Number`          | The sequence number of each node                  |
+| `AtoneSeqBracket`       | link to `Comment`         | The brackets surrounding the node sequence number |
+| `AtoneCurrentNode`      | link to `Keyword`         | The currently selected node in the undo tree      |
+| `AtoneMark`             | link to `BookmarkSign`    | Mark labels on nodes                              |
+| `AtoneDiffAdd`          | link to `DiffAdd`         | Background for added lines in the diff preview    |
+| `AtoneDiffDelete`       | link to `DiffDelete`      | Background for removed lines in the diff preview  |
+| `AtoneDiffAddInline`    | derived from `DiffAdd`    | Adaptive inline background for the changed range  |
+| `AtoneDiffDeleteInline` | derived from `DiffDelete` | Adaptive inline background for the changed range  |
 
 
 ------------------------------------------------------------------------------
