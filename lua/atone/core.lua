@@ -1,5 +1,6 @@
 local api, fn = vim.api, vim.fn
 local diff = require("atone.diff")
+local highlight = require("atone.highlight")
 local config = require("atone.config")
 local tree = require("atone.tree")
 local mark = require("atone.mark")
@@ -219,25 +220,37 @@ local mappings = {
     },
 }
 
+--- Update the diff display buffer and apply the extra diff preview layers.
+---@param diff_lines string[]
+local function update_diff_buf(diff_lines)
+    utils.set_text(_auto_diff_buf, diff_lines)
+    local lang = config.opts.diff_cur_node.treesitter and highlight.get_lang(M.attach_buf) or nil
+    local target_syntax = lang and "" or "diff"
+    if vim.bo[_auto_diff_buf].syntax ~= target_syntax then
+        api.nvim_set_option_value("syntax", target_syntax, { buf = _auto_diff_buf })
+    end
+    highlight.apply(_auto_diff_buf, diff_lines, lang, {
+        treesitter = config.opts.diff_cur_node.treesitter,
+        inline_diff = config.opts.diff_cur_node.inline_diff,
+    })
+end
+
 local function init()
     _tree_buf = utils.new_buf()
     _auto_diff_buf = utils.new_buf()
     _help_buf = utils.new_buf()
-    if config.opts.diff_cur_node.enabled then
-        api.nvim_set_option_value("syntax", "diff", { buf = _auto_diff_buf })
-    end
 
     api.nvim_create_autocmd("CursorMoved", {
         buffer = _tree_buf,
         group = M.augroup,
         callback = function()
-            if not seq_under_cursor() or not config.opts.diff_cur_node.enabled then
+            local seq = seq_under_cursor()
+            if not seq or not config.opts.diff_cur_node.enabled then
                 return
             end
             vim.schedule(function()
                 ---@diagnostic disable-next-line: param-type-mismatch
-                local diff_ctx = diff.get_diff_by_seq(M.attach_buf, seq_under_cursor())
-                utils.set_text(_auto_diff_buf, diff_ctx)
+                update_diff_buf(diff.get_diff_by_seq(M.attach_buf, seq))
             end)
         end,
     })
@@ -342,8 +355,7 @@ function M.refresh(stay)
             tree.nodes[tree.cur_seq].depth * 2 - 1
         )
 
-        local diff_ctx = diff.get_diff_by_seq(M.attach_buf, tree.cur_seq)
-        utils.set_text(_auto_diff_buf, diff_ctx)
+        update_diff_buf(diff.get_diff_by_seq(M.attach_buf, tree.cur_seq))
     end
 end
 

@@ -15,6 +15,10 @@ M.opts = {
         ---@type number float less than 1
         --- The diff window's height is set to a specified percentage of the original (namely tree graph) window's height.
         split_percent = 0.3,
+        -- Use TreeSitter to highlight the source code inside diff hunks.
+        treesitter = true,
+        -- Highlight the exact changed word ranges inside modified lines.
+        inline_diff = true,
     },
     -- automatically update the buffer that the tree is attached to
     -- only works for buffer whose buftype is <empty>
