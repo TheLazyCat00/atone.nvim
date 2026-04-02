@@ -116,23 +116,17 @@ function M.setup(user_opts)
     -- reset highlights when colorscheme changed
     api.nvim_create_autocmd("ColorScheme", {
         group = core.augroup,
-        callback = function()
-            set_highlights()
-        end,
+        callback = set_highlights,
     })
     api.nvim_create_autocmd("OptionSet", {
         group = core.augroup,
         pattern = "background",
-        callback = function()
-            set_highlights()
-        end,
+        callback = set_highlights,
     })
     api.nvim_create_autocmd("OptionSet", {
         group = core.augroup,
         pattern = "diffopt",
-        callback = function()
-            require("atone.diff").invalidate_diffopt_cache()
-        end,
+        callback = require("atone.diff").invalidate_diffopt_cache,
     })
     api.nvim_create_autocmd({ "TextChanged", "InsertLeave" }, {
         group = core.augroup,
