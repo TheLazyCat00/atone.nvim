@@ -161,4 +161,4 @@ Here are the available actions and their default keybindings:
 
 - Heavily inspired by [vim-mundo](https://github.com/simnalamburt/vim-mundo)
 - Refer to user commands implementation in [nvim-best-practices](https://github.com/nvim-neorocks/nvim-best-practices)
-- The inline diff and syntax highlighting architecture draws inspiration from [diffs.nvim](https://github.com/jeffzi/diffs.nvim)
+- The inline diff and syntax highlighting architecture draws inspiration from [diffs.nvim](https://github.com/barrettruth/diffs.nvim)
