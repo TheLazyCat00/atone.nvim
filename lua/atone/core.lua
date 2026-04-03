@@ -1,7 +1,9 @@
 local api, fn = vim.api, vim.fn
 local diff = require("atone.diff")
+local highlight = require("atone.highlight")
 local config = require("atone.config")
 local tree = require("atone.tree")
+local mark = require("atone.mark")
 local utils = require("atone.utils")
 local state = require("atone.state")
 
@@ -11,8 +13,6 @@ local M = {
     augroup = api.nvim_create_augroup("atone", { clear = true }),
     is_resizing = false
 }
-
-local TREE_PADDING = 5
 
 --- position the cursor at a specific node in the tree graph
 ---@param id integer
@@ -111,37 +111,148 @@ local mappings = {
         end,
         "Show help page",
     },
+    set_mark = {
+        function()
+            local seq = get_seq_under_cursor()
+            if not seq then
+                return
+            end
+            local filepath = utils.buf_filepath(M.attach_buf)
+            local function ask(default_val)
+                vim.ui.input({ prompt = "Mark name (N:name or N for slot): ", default = default_val }, function(input)
+                    if not input or input == "" then
+                        return
+                    end
+                    local name, slot = mark.parse_input(input)
+                    if not name then
+                        vim.notify("Atone: Slot must be a single digit (0-9)", vim.log.levels.WARN)
+                        ask(input)
+                        return
+                    end
+                    mark.set_mark(filepath, seq, name, slot)
+                    M.refresh(true)
+                end)
+            end
+            ask()
+        end,
+        "Set a mark on the node under cursor",
+    },
+    delete_mark = {
+        function()
+            local seq = get_seq_under_cursor()
+            if not seq then
+                return
+            end
+            local filepath = utils.buf_filepath(M.attach_buf)
+            local seq_marks = mark.get_by_seq(filepath, seq)
+            if #seq_marks == 0 then
+                vim.notify("Atone: No marks on this node", vim.log.levels.INFO)
+                return
+            end
+            if #seq_marks == 1 then
+                mark.delete_mark(filepath, seq_marks[1].name)
+                M.refresh(true)
+            else
+                local names = vim.tbl_map(function(m)
+                    return m.name
+                end, seq_marks)
+                vim.ui.select(names, { prompt = "Delete mark: " }, function(_, idx)
+                    if idx then
+                        mark.delete_mark(filepath, seq_marks[idx].name)
+                        M.refresh(true)
+                    end
+                end)
+            end
+        end,
+        "Delete the mark on the node under cursor",
+    },
+    goto_mark = {
+        function()
+            local filepath = utils.buf_filepath(M.attach_buf)
+            local ch = fn.getcharstr()
+            if ch == "\27" then
+                return
+            end
+            local digit = tonumber(ch)
+            if digit and digit >= 0 and digit <= 9 then
+                local m = mark.get_by_slot(filepath, digit)
+                if m then
+                    local id = tree.seq_2id(m.seq)
+                    if id then
+                        pos_cursor_by_id(id)
+                    else
+                        vim.notify("Atone: Mark target seq " .. m.seq .. " not found in tree", vim.log.levels.WARN)
+                    end
+                else
+                    vim.notify("Atone: No mark in slot " .. digit, vim.log.levels.INFO)
+                end
+            end
+        end,
+        "Jump to a mark slot (0-9)",
+    },
+    delete_all_marks = {
+        function()
+            local filepath = utils.buf_filepath(M.attach_buf)
+            local marks = mark.get_marks(filepath)
+            if vim.tbl_isempty(marks) then
+                vim.notify("Atone: No marks in this buffer", vim.log.levels.INFO)
+                return
+            end
+            mark.delete_all_marks(filepath)
+            M.refresh(true)
+        end,
+        "Delete all marks in current buffer",
+    },
+    mark_picker = {
+        function()
+            mark.pick(M.attach_buf, function(m)
+                if m then
+                    local id = tree.seq_2id(m.seq)
+                    if id then
+                        pos_cursor_by_id(id)
+                    end
+                end
+            end)
+        end,
+        "Open mark picker",
+    },
 }
+
+--- Update the diff display buffer and apply the extra diff preview layers.
+---@param diff_lines string[]
+local function update_diff_buf(diff_lines)
+    if not config.opts.diff_cur_node.enabled then
+        return
+    end
+    utils.set_text(state.auto_diff_buf, diff_lines)
+    local lang = config.opts.diff_cur_node.treesitter and highlight.get_lang(M.attach_buf) or nil
+    local target_syntax = lang and "" or "diff"
+    if vim.bo[state.auto_diff_buf].syntax ~= target_syntax then
+        api.nvim_set_option_value("syntax", target_syntax, { buf = state.auto_diff_buf })
+    end
+    highlight.apply(state.auto_diff_buf, diff_lines, lang, {
+        treesitter = config.opts.diff_cur_node.treesitter,
+        inline_diff = config.opts.diff_cur_node.inline_diff,
+    })
+end
 
 local function init()
     state.tree_buf = utils.new_buf()
     state.auto_diff_buf = utils.new_buf()
     state.help_buf = utils.new_buf()
     state.dummy_buf = utils.new_buf()
-    if config.opts.diff_cur_node.enabled then
-        api.nvim_set_option_value("syntax", "diff", { buf = state.auto_diff_buf })
-    end
 
-
-    if config.opts.diff_cur_node.enabled then
-        api.nvim_create_autocmd("CursorMoved", {
-            buffer = state.tree_buf,
-            group = M.augroup,
-            callback = vim.schedule_wrap(function()
-                local seq_under_cursor = get_seq_under_cursor()
-                if seq_under_cursor == nil then
-                    return
-                end
-
-                local pre_seq = tree.nodes[seq_under_cursor].parent or -1
-                local before_ctx = diff.get_context_by_seq(M.attach_buf, pre_seq)
-                ---@diagnostic disable-next-line: param-type-mismatch
-                local cur_ctx = diff.get_context_by_seq(M.attach_buf, seq_under_cursor)
-                local diff_ctx = diff.get_diff(before_ctx, cur_ctx)
-                utils.set_text(state.auto_diff_buf, diff_ctx)
-            end),
-        })
-    end
+    api.nvim_create_autocmd("CursorMoved", {
+        buffer = state.tree_buf,
+        group = M.augroup,
+        callback = vim.schedule_wrap(function()
+            local seq = get_seq_under_cursor()
+            if not seq or not config.opts.diff_cur_node.enabled then
+                return
+            end
+            update_diff_buf(diff.get_diff_by_seq(M.attach_buf, seq))
+        end),
+    })
 
     api.nvim_create_autocmd("WinClosed", {
         buffer = state.tree_buf,
@@ -198,23 +309,11 @@ local function init()
     end
 end
 
----@param strings string[]
----@return integer
-local function max_length(strings)
-    local length = 0
-    for _, s in ipairs(strings) do
-        if #s > length then
-            length = #s
-        end
-    end
-    return length
-end
-
 local function get_tree_width()
     local width = config.opts.layout.width
     if width == "adaptive" then
         local lines = api.nvim_buf_get_lines(state.tree_buf, 0, 1, false)
-        return max_length(lines) + TREE_PADDING
+        return fn.strchars(lines[1]) + 5
     elseif width < 1 then
         return math.floor(vim.o.columns * width + 0.5)
     else
@@ -407,21 +506,28 @@ function M.open()
         else
             state.diff_win = utils.new_win("belowright split", state.auto_diff_buf, { split = { height = height } }, false)
         end
-    end
 
-    api.nvim_win_call(state.tree_win, function()
-        fn.matchadd("AtoneSeqBracket", [=[\v\[\d+\]]=])
-        fn.matchadd("AtoneSeq", [=[\v\[\zs\d+\ze\]]=])
-    end)
-    M.refresh()
+        api.nvim_win_call(state.tree_win, function()
+            fn.matchadd("AtoneSeqBracket", [=[\v\[\d+\]]=])
+            fn.matchadd("AtoneSeq", [=[\v\[\zs\d+\ze\]]=])
+            fn.matchadd("AtoneMark", [=[\v\{[^}]+\}]=])
+        end)
+        M.refresh()
+    else
+        M.focus()
+    end
 end
 
-function M.refresh()
+---@param stay boolean?
+function M.refresh(stay)
     if M._show then
         tree.convert(M.attach_buf)
-        local buf_lines = tree.render()
+        local filepath = utils.buf_filepath(M.attach_buf)
+        mark.prune(filepath, tree.nodes)
+        local marks_labels = mark.build_labels(filepath)
+        local buf_lines = tree.render(marks_labels)
         if config.opts.layout.width == "adaptive" then
-            api.nvim_win_set_config(state.tree_win, { width = max_length(buf_lines) + TREE_PADDING })
+            api.nvim_win_set_config(state.tree_win, { width = fn.strchars(buf_lines[1]) + 5 })
         end
         utils.set_text(state.tree_buf, buf_lines)
 
@@ -430,9 +536,13 @@ function M.refresh()
             M.update_layout()
         end
 
-        pos_cursor_by_id(tree.seq_2id(tree.cur_seq))
+        if not stay then
+            pos_cursor_by_id(tree.seq_2id(tree.cur_seq))
+        end
 
-        local cur_line = api.nvim_win_get_cursor(state.tree_win)[1]
+        local compact = config.opts.ui.compact
+        local id = tree.seq_2id(tree.cur_seq)
+        local cur_line = compact and tree.total - id + 1 or (tree.total - id) * 2 + 1
         utils.color_char(
             state.tree_buf,
             "AtoneCurrentNode",
@@ -441,11 +551,7 @@ function M.refresh()
             tree.nodes[tree.cur_seq].depth * 2 - 1
         )
 
-        local pre_seq = tree.nodes[tree.cur_seq].parent or -1
-        local before_ctx = diff.get_context_by_seq(M.attach_buf, pre_seq)
-        local cur_ctx = diff.get_context_by_seq(M.attach_buf, tree.cur_seq)
-        local diff_ctx = diff.get_diff(before_ctx, cur_ctx)
-        utils.set_text(state.auto_diff_buf, diff_ctx)
+        update_diff_buf(diff.get_diff_by_seq(M.attach_buf, tree.cur_seq))
     end
 end
 

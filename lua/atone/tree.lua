@@ -2,17 +2,17 @@ local api, fn = vim.api, vim.fn
 local config = require("atone.config")
 local time_ago = require("atone.utils").time_ago
 
---- get the character at column `col` (1-based index)
+--- Get the character at column `col` (1-based character index).
 ---@param line string
----@param col integer
+---@param col integer 1-based character column
 ---@return string
 local function get_char(line, col)
     return fn.strcharpart(line, col - 1, 1)
 end
 
---- change the char of str in pos index.
+--- Replace the character at position `pos` (1-based character index) with `ch`.
 ---@param str string
----@param pos integer
+---@param pos integer 1-based character column
 ---@param ch string
 local function set_char_at(str, pos, ch)
     local len = fn.strchars(str)
@@ -186,7 +186,8 @@ end
 -- o |  [1]   2    7  <- a node
 -- |/              8  <- line after this node
 -- o    [0]   1    9
-function M.render()
+function M.render(marks_labels)
+    marks_labels = marks_labels or {}
     M.lines = {}
     local max_depth = 1
     seqs = { 0 }
@@ -303,7 +304,12 @@ function M.render()
             else
                 time = "Original"
             end
-            M.lines[lnum] = set_char_at(M.lines[lnum], max_depth * 2 + 4, "[" .. seq .. "] " .. time)
+
+            local target_index = max_depth * 2 + 4
+            local label = marks_labels[seq]
+            local label_suffix = label and label or ""
+            local content = string.format("[%s] %s %s", seq, time, label_suffix)
+            M.lines[lnum] = set_char_at(M.lines[lnum], target_index, content)
         end
     end
 

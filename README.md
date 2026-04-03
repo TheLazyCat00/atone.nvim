@@ -21,8 +21,9 @@
 
 * **Blazing Fast**
 * **Mordern UI**
-* **Live Diff:** Instantly see the difference between the selected undo-history state and its parent.
+* **Live Syntax-Aware Diff**: Instant, TreeSitter-powered diff previews with word-level inline highlighting.
 * **Auto-attaching Tree:** The undo tree automatically follows you as you switch between buffers.
+* **Node Marks:** Bookmark important undo states for quick navigation.
 * **Highly Customizable:** Almost every aspect can be configured.
 
 ## Installation
@@ -69,12 +70,23 @@ require("atone").setup({
         ---@type number float less than 1
         --- The diff window's height is set to a specified percentage of the original (namely tree graph) window's height.
         split_percent = 0.3,
+        -- Use TreeSitter to highlight the source code inside diff hunks.
+        treesitter = true,
+        -- Highlight the exact changed word ranges inside modified lines.
+        inline_diff = true,
     },
     -- automatically update the buffer that the tree is attached to
     -- only works for buffer whose buftype is <empty>
     auto_attach = {
         enabled = true,
         excluded_ft = { "oil" },
+    },
+    marks = {
+        persist = true,
+        persist_path = vim.fn.stdpath("data") .. "/atone_marks.json",
+        ---@type string[]
+        --- finders are tried in order. "builtin" is always available.
+        finders = { "fzf-lua", "telescope", "builtin" },
     },
     keymaps = {
         tree = {
@@ -84,6 +96,11 @@ require("atone").setup({
             jump_to_G = "G",
             jump_to_gg = "gg",
             undo_to = "<CR>",
+            set_mark = "m",
+            delete_mark = { "x", "X" },
+            delete_all_marks = "dM",
+            goto_mark = { "'", "`" },
+            mark_picker = "s",
             help = { "?", "g?" },
         },
         auto_diff = {
@@ -109,28 +126,39 @@ The `keymaps` table in the configuration allows you to map keys to specific acti
 
 Here are the available actions and their default keybindings:
 
-| Action      | Default Key(s) | Description                                                     |
-| ---         | ---            | ---                                                             |
-| `next_node` | `j`            | Jump to the next node in the undo tree. Supports `v:count`.     |
-| `pre_node`  | `k`            | Jump to the previous node in the undo tree. Supports `v:count`. |
-| `jump_to_G` | `G`            | Jump to the node with the specified sequence number like G      |
-| `jump_to_gg`| `gg`           | Jump to the node with the specified sequence number like gg     |
-| `undo_to`   | `<CR>`         | Revert the buffer to the state of the node under the cursor.    |
-| `quit`      | `<C-c>`, `q`   | Close all `atone.nvim` windows (tree, diff, and help).          |
-| `help`      | `?`, `g?`      | Show the help page.                                             |
-| `quit_help` | `<C-c>`, `q`   | Close the help window.                                          |
+| Action        | Default Key(s) | Description                                                     |
+| ---           | ---            | ---                                                             |
+| `next_node`   | `j`            | Jump to the next node in the undo tree. Supports `v:count`.     |
+| `pre_node`    | `k`            | Jump to the previous node in the undo tree. Supports `v:count`. |
+| `jump_to_G`   | `G`            | Jump to the node with the specified sequence number like G      |
+| `jump_to_gg`  | `gg`           | Jump to the node with the specified sequence number like gg     |
+| `undo_to`     | `<CR>`         | Revert the buffer to the state of the node under the cursor.    |
+| `set_mark`    | `m`            | Set a mark. Use `N:name` or `N` for slot (0-9).                 |
+| `delete_mark` | `x`, `X`       | Delete the mark on the node under cursor.                       |
+| `delete_all_marks` | `dM`      | Delete all marks in current buffer.                             |
+| `goto_mark`   | `'`, `` ` ``   | Jump to a mark slot (0-9).                                      |
+| `mark_picker` | `s`            | Open mark picker (fuzzy find).                                  |
+| `quit`        | `<C-c>`, `q`   | Close all `atone.nvim` windows (tree, diff, and help).          |
+| `help`        | `?`, `g?`      | Show the help page.                                             |
+| `quit_help`   | `<C-c>`, `q`   | Close the help window.                                          |
 
 ## Highlighting
 
 `atone.nvim` uses the following highlight groups. You can customize them as what you did for normal highlight groups.
 
-| Highlight Group    | Default           | Description                                       |
-| ---                | ---               | ---                                               |
-| `AtoneSeq`         | link to `Number`  | The sequence number of each node                  |
-| `AtoneSeqBracket`  | link to `Comment` | The brackets surrounding the node sequence number |
-| `AtoneCurrentNode` | link to `Keyword` | The currently selected node in the undo tree      |
+| Highlight Group         | Default                   | Description                                       |
+| ---                     | ---                       | ---                                               |
+| `AtoneSeq`              | link to `Number`          | The sequence number of each node                  |
+| `AtoneSeqBracket`       | link to `Comment`         | The brackets surrounding the node sequence number |
+| `AtoneCurrentNode`      | link to `Keyword`         | The currently selected node in the undo tree      |
+| `AtoneMark`             | link to `BookmarkSign`    | Mark labels on nodes                              |
+| `AtoneDiffAdd`          | link to `DiffAdd`         | Background for added lines in the diff preview    |
+| `AtoneDiffDelete`       | link to `DiffDelete`      | Background for removed lines in the diff preview  |
+| `AtoneDiffAddInline`    | derived from `DiffAdd`    | Adaptive inline background for the changed range  |
+| `AtoneDiffDeleteInline` | derived from `DiffDelete` | Adaptive inline background for the changed range  |
 
 ## Credits
 
 - Heavily inspired by [vim-mundo](https://github.com/simnalamburt/vim-mundo)
 - Refer to user commands implementation in [nvim-best-practices](https://github.com/nvim-neorocks/nvim-best-practices)
+- The inline diff and syntax highlighting architecture draws inspiration from [diffs.nvim](https://github.com/barrettruth/diffs.nvim)
