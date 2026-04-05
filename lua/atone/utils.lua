@@ -19,7 +19,7 @@ end
 --- create a new window
 ---@param mode string `float` or a command passed to the `vim.cmd()`
 ---@param buf integer
----@param config table?
+---@param config { win_config?: table, autoclose?: boolean }?
 ---@param enter boolean? defaults to true
 function M.new_win(mode, buf, config, enter)
     if enter == nil then
@@ -30,11 +30,10 @@ function M.new_win(mode, buf, config, enter)
         number = false,
         relativenumber = false,
         list = false,
+        winfixbuf = true,
         winfixwidth = true,
         winfixheight = true,
-        cursorline = false,
         wrap = false,
-        statusline = "",
     }
 
     local win
@@ -64,10 +63,10 @@ function M.new_win(mode, buf, config, enter)
             api.nvim_set_current_win(last_win)
         end
         api.nvim_win_set_config(win, config.win_config or {})
+    end
 
-        for option, value in pairs(win_opts) do
-            api.nvim_set_option_value(option, value, { win = win })
-        end
+    for option, value in pairs(win_opts) do
+        api.nvim_set_option_value(option, value, { win = win })
     end
 
     return win
